@@ -1,8 +1,11 @@
 package org.example.taxiservice.service;
 
 import ch.hsr.geohash.GeoHash;
+import org.example.taxiservice.entity.Driver;
 import org.example.taxiservice.entity.User;
+import org.example.taxiservice.repository.DriverRepository;
 import org.example.taxiservice.repository.UserRepository;
+import org.example.taxiservice.utils.GeoUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,7 +22,10 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
-    private static final double EARTH_RADIUS = 6371.0; // Радиус Земли в километрах
+    @Autowired
+    private DriverRepository driverRepository;
+
+    private static final double EARTH_RADIUS = 6371.0;
 
     public User save(User user) {
         validateUser(user);
@@ -59,29 +65,22 @@ public class UserService {
         return userRepository.findByGeohashStartsWithAndRolesContaining(geohashPrefix, role);
     }
 
-    public List<User> findNearestDrivers(double latitude, double longitude, double radiusKm) {
-        String geohashPrefix = GeoHash.geoHashStringWithCharacterPrecision(latitude, longitude, 7);
-        List<User> users = userRepository.findByGeohashStartsWithAndRolesContaining(geohashPrefix, User.Role.DRIVER);
+    public List<Driver> findNearestDrivers(double latitude, double longitude, double radiusKm) {
+        double[] boundingBox = GeoUtils.getBoundingBox(latitude, longitude, radiusKm);
 
-        return users.stream()
-                .filter(user -> distance(latitude, longitude, user.getLatitude(), user.getLongitude()) <= radiusKm)
+        List<Driver> drivers = driverRepository.findByLatitudeBetweenAndLongitudeBetweenAndRolesEquals(
+                boundingBox[0], boundingBox[1],
+                boundingBox[2], boundingBox[3],
+                User.Role.DRIVER);
+
+        return drivers.stream()
+                .filter(driver -> GeoUtils.distance(latitude, longitude, driver.getLatitude(), driver.getLongitude()) <= radiusKm)
                 .collect(Collectors.toList());
     }
 
-    private double distance(double lat1, double lon1, double lat2, double lon2) {
-        // Haversine formula to calculate distance between two points specified by latitude and longitude
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return EARTH_RADIUS * c;
-    }
-
     private void validateUser(User user) {
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            throw new RuntimeException("Roles must be specified");
+        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
+            throw new RuntimeException("Username already exists");
         }
     }
 }

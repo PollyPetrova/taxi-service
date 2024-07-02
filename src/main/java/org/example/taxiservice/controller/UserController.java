@@ -1,6 +1,8 @@
 package org.example.taxiservice.controller;
 
 import org.example.taxiservice.auth.JWTTokenProvider;
+import org.example.taxiservice.entity.Driver;
+import org.example.taxiservice.entity.Passenger;
 import org.example.taxiservice.entity.User;
 import org.example.taxiservice.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,11 +23,18 @@ public class UserController {
     @Autowired
     private JWTTokenProvider jwtTokenProvider;
 
-    @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user) {
-        user.setPassword(new BCryptPasswordEncoder().encode(user.getPassword()));
-        User createdUser = userService.save(user);
-        return ResponseEntity.ok(createdUser);
+    @PostMapping("/register/driver")
+    public ResponseEntity<Driver> createDriver(@RequestBody Driver driver) {
+        driver.setPassword(new BCryptPasswordEncoder().encode(driver.getPassword()));
+        Driver createdDriver = (Driver) userService.save(driver);
+        return ResponseEntity.ok(createdDriver);
+    }
+
+    @PostMapping("/register/passenger")
+    public ResponseEntity<Passenger> createPassenger(@RequestBody Passenger passenger) {
+        passenger.setPassword(new BCryptPasswordEncoder().encode(passenger.getPassword()));
+        Passenger createdPassenger = (Passenger) userService.save(passenger);
+        return ResponseEntity.ok(createdPassenger);
     }
 
     @PostMapping("/login")
@@ -38,9 +47,8 @@ public class UserController {
         throw new RuntimeException("Invalid username or password");
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User user) {
-        user.setId(id);
+    @PutMapping("/update")
+    public ResponseEntity<User> updateUser(@RequestBody User user) {
         User updatedUser = userService.update(user);
         return ResponseEntity.ok(updatedUser);
     }
@@ -57,8 +65,8 @@ public class UserController {
     }
 
     @GetMapping("/nearby")
-    public ResponseEntity<List<User>> getNearbyDrivers(@RequestParam double latitude, @RequestParam double longitude, @RequestParam double radiusKm) {
-        List<User> drivers = userService.findNearestDrivers(latitude, longitude, radiusKm);
+    public ResponseEntity<List<Driver>> getNearbyDrivers(@RequestParam double latitude, @RequestParam double longitude, @RequestParam double radiusKm) {
+        List<Driver> drivers = userService.findNearestDrivers(latitude, longitude, radiusKm);
         return ResponseEntity.ok(drivers);
     }
 }

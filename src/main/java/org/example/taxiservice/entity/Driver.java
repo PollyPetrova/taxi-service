@@ -10,6 +10,7 @@ import java.util.Set;
 
 @Data
 @Entity
+@Table(name = "tb_driver")
 @DiscriminatorValue("DRIVER")
 public class Driver extends User {
 

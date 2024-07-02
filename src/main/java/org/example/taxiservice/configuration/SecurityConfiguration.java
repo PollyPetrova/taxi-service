@@ -29,9 +29,8 @@ public class SecurityConfiguration {
                 .headers(h -> h.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests((authorize) -> authorize
-                        .requestMatchers(HttpMethod.POST, "/user", "/user/login").permitAll()
-                        .requestMatchers("/drivers/**").hasRole("DRIVER")
-                        .requestMatchers("/passengers/**").hasRole("PASSENGER")
+                        .requestMatchers(HttpMethod.POST, "/user/register/**", "/user/login").permitAll()
+                        .requestMatchers("/users/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class);
