@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class NearestRideRequest {
-    private Long passengerId;
     private Long nearestDriverId;
+    private double destinationLatitude;
+    private double destinationLongitude;
 }

@@ -25,9 +25,21 @@ public class Ride {
     @Enumerated(EnumType.STRING)
     private Status status;
 
+    private LocalDateTime arrivalTime;
     private LocalDateTime requestTime;
+
+    private double destinationLatitude;
+    private double destinationLongitude;
 
     public enum Status {
         REQUESTED, ACCEPTED, IN_PROGRESS, COMPLETED, CANCELED
+    }
+
+    public LocalDateTime getArrivalTime() {
+        return arrivalTime;
+    }
+
+    public void setArrivalTime(LocalDateTime arrivalTime) {
+        this.arrivalTime = arrivalTime;
     }
 }

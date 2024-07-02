@@ -25,8 +25,6 @@ public class UserService {
     @Autowired
     private DriverRepository driverRepository;
 
-    private static final double EARTH_RADIUS = 6371.0;
-
     public User save(User user) {
         validateUser(user);
         return userRepository.save(user);
@@ -61,9 +59,6 @@ public class UserService {
         return userRepository.findByUsername(username);
     }
 
-    public List<User> getUsersByGeohashPrefix(String geohashPrefix, User.Role role) {
-        return userRepository.findByGeohashStartsWithAndRolesContaining(geohashPrefix, role);
-    }
 
     public List<Driver> findNearestDrivers(double latitude, double longitude, double radiusKm) {
         double[] boundingBox = GeoUtils.getBoundingBox(latitude, longitude, radiusKm);

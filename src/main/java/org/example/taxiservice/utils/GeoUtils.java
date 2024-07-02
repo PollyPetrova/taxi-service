@@ -1,5 +1,7 @@
 package org.example.taxiservice.utils;
 
+import java.time.LocalDateTime;
+
 public class GeoUtils {
     private static final double EARTH_RADIUS = 6371.0;
 
@@ -20,6 +22,15 @@ public class GeoUtils {
                 * Math.sin(dLon / 2) * Math.sin(dLon / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return 6371.0 * c;
+    }
+
+    public LocalDateTime calculateArrivalTime(double startLatitude, double startLongitude,
+                                              double endLatitude, double endLongitude,
+                                              double averageSpeedKmPerHour) {
+        double distanceKm = GeoUtils.distance(startLatitude, startLongitude, endLatitude, endLongitude);
+        double travelTimeHours = distanceKm / averageSpeedKmPerHour;
+        LocalDateTime currentTime = LocalDateTime.now();
+        return currentTime.plusHours((long) travelTimeHours);
     }
 
 }
