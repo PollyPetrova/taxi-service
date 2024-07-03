@@ -8,10 +8,12 @@ import org.example.taxiservice.entity.User;
 import org.example.taxiservice.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -48,37 +50,27 @@ public class UserController {
         throw new RuntimeException("Invalid username or password");
     }
 
-    @PutMapping("/update/{id}")
-    public ResponseEntity<String> updateUser(@RequestBody User updatedUser, HttpServletRequest request) {
+    @PutMapping("/update")
+    @PreAuthorize("hasAnyRole('PASSENGER', 'DRIVER')")
+    public ResponseEntity<String> updateUser(@RequestBody Map<String, Object> updates, HttpServletRequest request) {
         String token = jwtTokenProvider.resolveToken(request);
         Long userId = jwtTokenProvider.getUserIdFromJWT(token);
 
         User existingUser = userService.getUserById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        existingUser.setUsername(updatedUser.getUsername());
-        existingUser.setPassword(new BCryptPasswordEncoder().encode(updatedUser.getPassword()));
-        existingUser.setLatitude(updatedUser.getLatitude());
-        existingUser.setLongitude(updatedUser.getLongitude());
-        existingUser.setRoles(updatedUser.getRoles());
+        boolean isUsernameUpdated = updates.containsKey("username");
+        boolean isPasswordUpdated = updates.containsKey("password");
+        boolean isRolesUpdated = updates.containsKey("roles");
 
-        if (existingUser instanceof Driver && updatedUser instanceof Driver) {
-            Driver existingDriver = (Driver) existingUser;
-            Driver updatedDriver = (Driver) updatedUser;
-            existingDriver.setVehicleDetails(updatedDriver.getVehicleDetails());
-            existingDriver.setVehicleColor(updatedDriver.getVehicleColor());
-            existingDriver.setDriverRating(updatedDriver.getDriverRating());
-        }
-
-        if (existingUser instanceof Passenger && updatedUser instanceof Passenger) {
-            Passenger existingPassenger = (Passenger) existingUser;
-            Passenger updatedPassenger = (Passenger) updatedUser;
-            existingPassenger.setPaymentMethod(updatedPassenger.getPaymentMethod());
-        }
+        userService.updateUserFields(existingUser, updates);
 
         User savedUser = userService.update(existingUser);
 
-        String updatedToken = jwtTokenProvider.generateToken(savedUser.getId(), savedUser.getUsername(), savedUser.getRoles());
+        String updatedToken = token;
+        if (isUsernameUpdated || isPasswordUpdated || isRolesUpdated) {
+            updatedToken = jwtTokenProvider.generateToken(savedUser.getId(), savedUser.getUsername(), savedUser.getRoles());
+        }
 
         return ResponseEntity.ok(updatedToken);
     }

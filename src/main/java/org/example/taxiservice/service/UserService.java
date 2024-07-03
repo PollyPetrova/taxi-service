@@ -2,6 +2,7 @@ package org.example.taxiservice.service;
 
 import ch.hsr.geohash.GeoHash;
 import org.example.taxiservice.entity.Driver;
+import org.example.taxiservice.entity.Passenger;
 import org.example.taxiservice.entity.User;
 import org.example.taxiservice.repository.DriverRepository;
 import org.example.taxiservice.repository.UserRepository;
@@ -11,8 +12,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -32,19 +32,57 @@ public class UserService {
 
     public User update(User user) {
         validateUser(user);
-        Optional<User> existingUser = userRepository.findById(user.getId());
-        if (existingUser.isPresent()) {
-            User userToUpdate = existingUser.get();
-            userToUpdate.setUsername(user.getUsername());
-            userToUpdate.setPassword(new BCryptPasswordEncoder().encode(user.getPassword()));
-            userToUpdate.setLatitude(user.getLatitude());
-            userToUpdate.setLongitude(user.getLongitude());
-            userToUpdate.setRoles(user.getRoles());
-            userToUpdate.calculateGeohash();
-            return userRepository.save(userToUpdate);
-        } else {
-            throw new RuntimeException("User not found");
+        return userRepository.save(user);
+    }
+
+    public void updateUserFields(User existingUser, Map<String, Object> updates) {
+        if (updates.containsKey("username")) {
+            existingUser.setUsername((String) updates.get("username"));
         }
+        if (updates.containsKey("password")) {
+            String rawPassword = (String) updates.get("password");
+            if (rawPassword != null && !rawPassword.isEmpty()) {
+                existingUser.setPassword(new BCryptPasswordEncoder().encode(rawPassword));
+            }
+        }
+        if (updates.containsKey("latitude")) {
+            existingUser.setLatitude((Double) updates.get("latitude"));
+        }
+        if (updates.containsKey("longitude")) {
+            existingUser.setLongitude((Double) updates.get("longitude"));
+        }
+        if (updates.containsKey("roles")) {
+            List<String> roles = (List<String>) updates.get("roles");
+            existingUser.setRoles(convertRoles(roles));
+        }
+
+        if (existingUser instanceof Driver) {
+            Driver existingDriver = (Driver) existingUser;
+            if (updates.containsKey("vehicleDetails")) {
+                existingDriver.setVehicleDetails((String) updates.get("vehicleDetails"));
+            }
+            if (updates.containsKey("vehicleColor")) {
+                existingDriver.setVehicleColor((String) updates.get("vehicleColor"));
+            }
+            if (updates.containsKey("driverRating")) {
+                existingDriver.setDriverRating((Double) updates.get("driverRating"));
+            }
+        }
+
+        if (existingUser instanceof Passenger) {
+            Passenger existingPassenger = (Passenger) existingUser;
+            if (updates.containsKey("paymentMethod")) {
+                existingPassenger.setPaymentMethod((String) updates.get("paymentMethod"));
+            }
+        }
+    }
+
+    private Set<User.Role> convertRoles(List<String> roles) {
+        Set<User.Role> roleSet = new HashSet<>();
+        for (String roleName : roles) {
+            roleSet.add(User.Role.valueOf(roleName));
+        }
+        return roleSet;
     }
 
     public Optional<User> getUserById(Long id) {
